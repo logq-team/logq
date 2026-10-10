@@ -1,0 +1,12 @@
+name: Задача
+description: Единица работы
+body:
+  - type: textarea
+    attributes:
+      label: Что нужно сделать
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Критерий готовности
+      placeholder: "- [ ] ..."

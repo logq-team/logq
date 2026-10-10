@@ -1,0 +1,7 @@
+build/
+*.o
+*.a
+*.so
+/logq
+bench/data/
+bench/results/
