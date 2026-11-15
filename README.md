@@ -2,6 +2,30 @@
 
 Параллельный анализатор логов: Go-обвязка + C++-движок.
 
+## Демка Go + C++ через cgo
+
+Нужны Go 1.22+ и компилятор C++20; для отладки — GDB.
+
+Запуск:
+
+```sh
+make
+./build/logq --text hello --number 21
+```
+
+Тесты:
+
+```sh
+make test
+```
+
+Отладка с Go `main`:
+
+```sh
+make debug
+gdb -q -x scripts/debug-demo.gdb
+```
+
 ## Как мы работаем
 
 Задачи ведём на доске [Projects](https://github.com/orgs/logq-team/projects/1). Любая работа начинается с issue, а любой код попадает в `main` только через PR.
