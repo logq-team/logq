@@ -33,6 +33,13 @@ make overview-demo
 make overview-demo OVERVIEW_FILE=/path/to/file.log
 ```
 
+Тесты C++
+
+```sh
+sudo apt-get install libgtest-dev pkg-config
+make cpp-test
+```
+
 ## Как мы работаем
 
 Задачи ведём на доске [Projects](https://github.com/orgs/logq-team/projects/1). Любая работа начинается с issue, а любой код попадает в `main` только через PR.
