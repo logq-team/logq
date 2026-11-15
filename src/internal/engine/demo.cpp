@@ -8,7 +8,7 @@
 static_assert(__cplusplus == 202002L, "LogQ requires C++20");
 
 int lq_demo_inspect(const char* text, size_t length, int64_t number, lq_demo_result* result) {
-    std::cout << "[DEBUG] " << "Hello from C++:" << __func__ << std::endl;
+    std::cout << "[CPP][DEBUG] " << "Hello from C++:" << __func__ << std::endl;
     if (result == nullptr || (text == nullptr && length != 0)) {
         return LQ_DEMO_INVALID_ARGUMENT;
     }
