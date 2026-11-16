@@ -28,11 +28,11 @@ test: cpp-test
 cpp-test: build/overview-test
 	./build/overview-test
 
-build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/overview.h
+build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/overview.h src/engine/lq_overview.cpp src/engine/lq_overview.h
 	@$(PKG_CONFIG) --exists gtest_main || { echo "[CPP][ERROR] Install libgtest-dev and pkg-config to run C++ tests" >&2; exit 1; }
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
-		$(shell $(PKG_CONFIG) --cflags gtest_main) tests/cpp/overview_test.cpp src/engine/overview.cpp \
+		$(shell $(PKG_CONFIG) --cflags gtest_main) tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/lq_overview.cpp \
 		-o $@ $(shell $(PKG_CONFIG) --libs gtest_main)
 
 overview-demo: build/overview-demo

@@ -1,4 +1,5 @@
 #include "overview.h"
+#include "lq_overview.h"
 
 #include <gtest/gtest.h>
 
@@ -124,6 +125,124 @@ TEST_F(overview_test, ReadFailure)
     ASSERT_TRUE(file.is_open());
     file.setstate(std::ios::badbit);
     EXPECT_THROW(analyze_file(file), std::runtime_error);
+}
+
+class overview_api_test : public overview_test {
+};
+
+TEST_F(overview_api_test, PreservesOrderAndExtraStorage)
+{
+    input.write("ERROR\n");
+    temporary_file second;
+    second.write("WARN\nWARN\n");
+    const char* paths[]{second.path.c_str(), input.path.c_str(), second.path.c_str()};
+    lq_overview_request request{paths, 3, 1};
+    lq_file_stats results[4]{};
+    results[3] = {11, 12, 13, 14, LQ_FILE_INTERNAL_ERROR};
+
+    ASSERT_EQ(lq_overview(&request, results, 4), LQ_CALL_OK);
+    const lq_file_stats expected[]{
+        {10, 2, 0, 2, LQ_FILE_OK},
+        {6, 1, 1, 0, LQ_FILE_OK},
+        {10, 2, 0, 2, LQ_FILE_OK}
+    };
+    for (std::size_t i{}; i < request.file_count; ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(results[i].bytes, expected[i].bytes);
+        EXPECT_EQ(results[i].lines, expected[i].lines);
+        EXPECT_EQ(results[i].error_lines, expected[i].error_lines);
+        EXPECT_EQ(results[i].warn_lines, expected[i].warn_lines);
+        EXPECT_EQ(results[i].status, expected[i].status);
+    }
+    EXPECT_EQ(results[3].bytes, 11);
+    EXPECT_EQ(results[3].lines, 12);
+    EXPECT_EQ(results[3].error_lines, 13);
+    EXPECT_EQ(results[3].warn_lines, 14);
+    EXPECT_EQ(results[3].status, LQ_FILE_INTERNAL_ERROR);
+}
+
+TEST_F(overview_api_test, ContinuesAfterFileErrors)
+{
+    input.write("ERROR\n");
+    const std::string missing = input.path + ".missing";
+    // A directory opens on Linux but fails when read
+    const char* paths[]{input.path.c_str(), missing.c_str(), ".", input.path.c_str()};
+    lq_overview_request request{paths, 4, 1};
+    lq_file_stats results[4];
+    for (auto& result : results)
+    {
+        result = {99, 99, 99, 99, LQ_FILE_INTERNAL_ERROR};
+    }
+
+    ASSERT_EQ(lq_overview(&request, results, 4), LQ_CALL_OK);
+    const lq_file_stats expected[]{
+        {6, 1, 1, 0, LQ_FILE_OK},
+        {0, 0, 0, 0, LQ_FILE_OPEN_ERROR},
+        {0, 0, 0, 0, LQ_FILE_READ_ERROR},
+        {6, 1, 1, 0, LQ_FILE_OK}
+    };
+    for (std::size_t i{}; i < request.file_count; ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(results[i].bytes, expected[i].bytes);
+        EXPECT_EQ(results[i].lines, expected[i].lines);
+        EXPECT_EQ(results[i].error_lines, expected[i].error_lines);
+        EXPECT_EQ(results[i].warn_lines, expected[i].warn_lines);
+        EXPECT_EQ(results[i].status, expected[i].status);
+    }
+}
+
+TEST_F(overview_api_test, AcceptsEmptyRequest)
+{
+    lq_overview_request request{nullptr, 0, 1};
+    EXPECT_EQ(lq_overview(&request, nullptr, 0), LQ_CALL_OK);
+}
+
+TEST_F(overview_api_test, RejectsInvalidRequestsWithoutWritingResults)
+{
+    const char* paths[]{input.path.c_str(), input.path.c_str()};
+    lq_overview_request request{paths, 2, 1};
+    lq_file_stats results[2];
+    for (auto& result : results)
+    {
+        result = {11, 12, 13, 14, LQ_FILE_INTERNAL_ERROR};
+    }
+
+    EXPECT_EQ(lq_overview(nullptr, results, 2), LQ_CALL_INVALID_ARGUMENT);
+    EXPECT_EQ(lq_overview(&request, nullptr, 2), LQ_CALL_INVALID_ARGUMENT);
+    EXPECT_EQ(lq_overview(&request, results, 1), LQ_CALL_INVALID_ARGUMENT);
+    paths[1] = nullptr;
+    EXPECT_EQ(lq_overview(&request, results, 2), LQ_CALL_INVALID_ARGUMENT);
+    request.paths = nullptr;
+    EXPECT_EQ(lq_overview(&request, results, 2), LQ_CALL_INVALID_ARGUMENT);
+    request.paths = paths;
+    paths[1] = input.path.c_str();
+    request.workers = 0;
+    EXPECT_EQ(lq_overview(&request, results, 2), LQ_CALL_INVALID_ARGUMENT);
+
+    for (const auto& result : results)
+    {
+        EXPECT_EQ(result.bytes, 11);
+        EXPECT_EQ(result.lines, 12);
+        EXPECT_EQ(result.error_lines, 13);
+        EXPECT_EQ(result.warn_lines, 14);
+        EXPECT_EQ(result.status, LQ_FILE_INTERNAL_ERROR);
+    }
+}
+
+TEST_F(overview_api_test, RejectsParallelRequestWithoutWritingResults)
+{
+    const char* paths[]{input.path.c_str()};
+    lq_overview_request request{paths, 1, 2};
+    lq_file_stats result{11, 12, 13, 14, LQ_FILE_INTERNAL_ERROR};
+
+    EXPECT_EQ(lq_overview(&request, &result, 1), LQ_CALL_UNSUPPORTED);
+    EXPECT_EQ(result.bytes, 11);
+    EXPECT_EQ(result.lines, 12);
+    EXPECT_EQ(result.error_lines, 13);
+    EXPECT_EQ(result.warn_lines, 14);
+    EXPECT_EQ(result.status, LQ_FILE_INTERNAL_ERROR);
 }
 
 }
