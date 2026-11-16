@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -65,7 +64,7 @@ func processTarHeader(destPath string,
 	targetPath := filepath.Join(destPath, header.Name)
 	var targetPathRes *string
 
-	fmt.Println("Тип файла ", header.Typeflag)
+	//fmt.Println("Тип файла ", header.Typeflag)
 
 	switch header.Typeflag {
 	case tar.TypeDir:
@@ -89,7 +88,7 @@ func processTarHeader(destPath string,
 
 		targetPathRes = &targetPath
 	default:
-		fmt.Printf("Типы кроме директорий и обычных файлов пропускаются\n")
+		//fmt.Printf("Типы кроме директорий и обычных файлов пропускаются\n")
 	}
 
 	return targetPathRes, nil
