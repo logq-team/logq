@@ -16,8 +16,8 @@ func ValidatePath(path string) bool {
 	parentStartLen := len(ParentStart)
 	noParentDir := strings.Contains(path, "/../") ||
 		path == ".." ||
-		path[pathLen-parentEndLen:] == ParentEnd ||
-		path[:parentStartLen] == ParentStart
+		(pathLen >= parentEndLen && path[pathLen-parentEndLen:] == ParentEnd) ||
+		(pathLen >= parentStartLen && path[:parentStartLen] == ParentStart)
 
 	return !noParentDir
 }

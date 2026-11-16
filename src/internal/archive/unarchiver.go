@@ -69,38 +69,22 @@ func processTarHeader(destPath string,
 
 	switch header.Typeflag {
 	case tar.TypeDir:
+		if validationRes := ValidatePath(targetPath); !validationRes {
+			return nil, ErrInvalidPath
+		}
 		if err = os.MkdirAll(targetPath, os.FileMode(header.Mode)); err != nil {
 			return nil, err
 		}
 	case tar.TypeReg:
+		if validationRes := ValidatePath(targetPath); !validationRes {
+			return nil, ErrInvalidPath
+		}
 		if err = os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 			return nil, err
 		}
 
-		outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
-		if err != nil {
+		if err = writeTarFile(targetPath, tr, os.FileMode(header.Mode)); err != nil {
 			return nil, err
-		}
-		defer outFile.Close()
-
-		buffer := make([]byte, BufferSizeInBytes)
-		for {
-			nIn, err := tr.Read(buffer)
-			if nIn > 0 {
-				_, err := outFile.Write(buffer)
-				if err != nil {
-					return nil, err
-				}
-			} else if err != nil && err != io.EOF {
-				return nil, err
-			} else if err == io.EOF {
-				break
-			}
-		}
-
-		validationRes := ValidatePath(targetPath)
-		if !validationRes {
-			return nil, ErrInvalidPath
 		}
 
 		targetPathRes = &targetPath
@@ -109,4 +93,28 @@ func processTarHeader(destPath string,
 	}
 
 	return targetPathRes, nil
+}
+
+func writeTarFile(targetPath string, tr *tar.Reader, mode os.FileMode) error {
+	outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	buffer := make([]byte, BufferSizeInBytes)
+	for {
+		nIn, err := tr.Read(buffer)
+		if nIn > 0 {
+			if _, err := outFile.Write(buffer[:nIn]); err != nil {
+				return err
+			}
+		} else if err != nil && err != io.EOF {
+			return err
+		} else if err == io.EOF {
+			break
+		}
+	}
+
+	return nil
 }
