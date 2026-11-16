@@ -22,8 +22,7 @@ make test
 Отладка с Go `main`:
 
 ```sh
-make debug
-gdb -q -x scripts/debug-demo.gdb
+make debug-demo
 ```
 
 ## C++: последовательный анализ файла
@@ -33,11 +32,43 @@ make overview-demo
 make overview-demo OVERVIEW_FILE=/path/to/file.log
 ```
 
+Отладка
+
+```sh
+make overview-demo-debug
+```
+
 Тесты C++
 
 ```sh
 sudo apt-get install libgtest-dev pkg-config
 make cpp-test
+```
+
+Стенд общего интерфейса
+
+```sh
+make overview-api-demo
+```
+
+Отладка
+
+```sh
+make overview-api-demo-debug
+```
+
+TUI с логами в отдельном терминале
+
+Во втором терминале выполни `tty` и оставь его открытым
+
+```sh
+tty
+```
+
+В терминале проекта подставь полученный путь вместо `/dev/pts/7`
+
+```sh
+make overview-api-demo-debug GDB='gdb -tui -ex "set inferior-tty /dev/pts/7"'
 ```
 
 ## Как мы работаем
