@@ -3,10 +3,13 @@ CXX ?= g++
 GDB ?= gdb
 PKG_CONFIG ?= pkg-config
 OVERVIEW_FILE ?= res/cpp/test.log
+BENCH_FILES ?= $(OVERVIEW_FILE)
+BENCH_WORKERS ?= 1,2,4,8
 CXX_DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer
 
 .PHONY: all build debug test hooks overview-demo cpp-test overview-api-demo
 .PHONY: debug-demo overview-demo-debug overview-api-demo-debug
+.PHONY: overview-bench overview-bench-debug
 
 all: build
 
@@ -68,6 +71,23 @@ build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_over
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
+
+overview-bench: build/overview-benchmark
+	./build/overview-benchmark "$(BENCH_WORKERS)" $(BENCH_FILES)
+
+build/overview-benchmark: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+	mkdir -p build
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -O2 -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
+
+overview-bench-debug: build/overview-benchmark-debug
+	$(GDB) -q -ex 'break main' -ex 'break lq_overview' -ex run \
+		--args ./build/overview-benchmark-debug "$(BENCH_WORKERS)" $(BENCH_FILES)
+
+build/overview-benchmark-debug: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+	mkdir -p build
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 hooks:
 	git config core.hooksPath .githooks
