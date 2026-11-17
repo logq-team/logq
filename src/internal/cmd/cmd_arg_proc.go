@@ -15,11 +15,14 @@ const (
 	OverviewCommand Command = "overview"
 )
 
+const (
+	ProgramName = "logq"
+)
+
 func ProcessArgs(args []string) (Command, error) {
-	programName := args[0]
 	// у нас количество аргументов всегда >= 1
 	if len(args) == 1 {
-		return "", errors.New("Type \"" + programName + " help\" for more information\n")
+		return "", errors.New("Type \"" + ProgramName + " help\" for more information\n")
 	}
 
 	commandName := args[1]
@@ -31,7 +34,7 @@ func ProcessArgs(args []string) (Command, error) {
 		//we also need minimum 2 args
 		if len(args) < 4 {
 			return "", errors.New("Not enough arguments\n\"grep\" command usage:\n" +
-				programName + " grep [PATTERN] [PATH_TO_ARCHIVE]")
+				ProgramName + " grep [PATTERN] [PATH_TO_ARCHIVE]")
 		}
 
 		return GrepCommand, nil
@@ -40,13 +43,13 @@ func ProcessArgs(args []string) (Command, error) {
 		//we also need minimum 1 arg
 		if len(args) < 3 {
 			return "", errors.New("Not enough arguments\n\"overview\" command usage:\n" +
-				programName + " overview [PATH_TO_ARCHIVE]")
+				ProgramName + " overview [PATH_TO_ARCHIVE]")
 		}
 
 		return OverviewCommand, nil
 	default:
 		return "", errors.New("Unknown command\n" +
-			"Type \"" + programName + " help\" for more information\n")
+			"Type \"" + ProgramName + " help\" for more information\n")
 	}
 }
 
