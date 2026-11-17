@@ -17,6 +17,9 @@ func main() {
 	}
 
 	switch commandType {
-	case cmd.HelpCommand
+	case cmd.HelpCommand, cmd.GrepCommand, cmd.OverviewCommand:
+		if err := cmd.Handle(commandType, args); err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 }

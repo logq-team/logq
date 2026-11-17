@@ -1,6 +1,11 @@
 package cmd
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+
+	"logq/src/internal/engine"
+)
 
 type Command string
 
@@ -24,15 +29,15 @@ func ProcessArgs(args []string) (Command, error) {
 	case string(GrepCommand):
 		//еще минимум 2 аргумента должно быть
 		if len(args) < 4 {
-			return "", errors.New("\"grep\" command usage:\n" +
+			return "", errors.New("Not enough arguments\n\"grep\" command usage:\n" +
 				programName + " grep [PATTERN] [PATH_TO_ARCHIVE]")
 		}
 
 		return GrepCommand, nil
 	case string(OverviewCommand):
 		//еще минимум 1 аргумент должен быть
-		if len(args) < 4 {
-			return "", errors.New("\"overview\" command usage:\n" +
+		if len(args) < 3 {
+			return "", errors.New("Not enough arguments\n\"overview\" command usage:\n" +
 				programName + " overview [PATH_TO_ARCHIVE]")
 		}
 
@@ -40,5 +45,19 @@ func ProcessArgs(args []string) (Command, error) {
 	default:
 		return "", errors.New("Unknown command\n" +
 			"Type \"" + programName + " help\" for more information\n")
+	}
+}
+
+func Handle(commandType Command, args []string) error {
+	switch commandType {
+	case HelpCommand:
+		fmt.Println(engine.HandleHelp())
+		return nil
+	case GrepCommand:
+		return engine.HandleGrep(args[2], args[3])
+	case OverviewCommand:
+		return engine.HandleOverview(args[2])
+	default:
+		return errors.New("unknown command")
 	}
 }
