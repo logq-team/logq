@@ -28,6 +28,7 @@ func ProcessArgs(args []string) (Command, error) {
 		return HelpCommand, nil
 	case string(GrepCommand):
 		//еще минимум 2 аргумента должно быть
+		//we also need minimum 2 args
 		if len(args) < 4 {
 			return "", errors.New("Not enough arguments\n\"grep\" command usage:\n" +
 				programName + " grep [PATTERN] [PATH_TO_ARCHIVE]")
@@ -36,6 +37,7 @@ func ProcessArgs(args []string) (Command, error) {
 		return GrepCommand, nil
 	case string(OverviewCommand):
 		//еще минимум 1 аргумент должен быть
+		//we also need minimum 1 arg
 		if len(args) < 3 {
 			return "", errors.New("Not enough arguments\n\"overview\" command usage:\n" +
 				programName + " overview [PATH_TO_ARCHIVE]")
