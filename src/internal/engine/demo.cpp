@@ -5,7 +5,7 @@
 #include <limits>
 #include <string_view>
 
-static_assert(__cplusplus == 202002L, "LogQ requires C++20");
+static_assert(__cplusplus >= 202302L, "LogQ requires C++23 or newer");
 
 int lq_demo_inspect(const char* text, size_t length, int64_t number, lq_demo_result* result) {
     std::cout << "[CPP][DEBUG] " << "Hello from C++:" << __func__ << std::endl;

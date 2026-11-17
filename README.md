@@ -7,12 +7,12 @@
 ```sh
 make
 mkdir -p build
-CGO_ENABLED=1 CXX="g++" go build -o build/logq ./src/cli
+CGO_ENABLED=1 CXX="g++-14" go build -o build/logq ./src/cli
 ```
 
 ## Демка Go + C++ через cgo
 
-Нужны Go 1.22+ и компилятор C++20; для отладки — GDB.
+Нужны Go 1.22+ и GCC 14+ с поддержкой C++23 — для отладки GDB
 
 Запуск:
 
@@ -49,7 +49,7 @@ make overview-demo-debug
 Тесты C++
 
 ```sh
-sudo apt-get install libgtest-dev pkg-config
+sudo apt-get install g++-14 libgtest-dev pkg-config
 make cpp-test
 ```
 
