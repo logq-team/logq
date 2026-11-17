@@ -1,27 +1,25 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"logq/src/internal/engine"
+	"logq/src/internal/cmd"
+	"os"
 )
 
 func main() {
+	args := os.Args
 
-	overviewFlag := flag.Bool("overview", false, "overview is used for common statistics")
-	//grepFlag := flag.String("grep", "all", "how to process logs")
+	commandType, err := cmd.ProcessArgs(args)
 
-	flag.Parse()
-	args := flag.Args()
-
-
-
-	if !*overviewFlag || len(args) != 1 {
-		fmt.Printf("Невалидное использование утилиты")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
 	}
 
-	err := engine.ProcessArchive(args[0])
-	if err != nil {
-		println("Err happened while processing\n", err.Error())
+	switch commandType {
+	case cmd.HelpCommand, cmd.GrepCommand, cmd.OverviewCommand:
+		if err := cmd.Handle(commandType, args); err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 }

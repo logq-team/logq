@@ -7,9 +7,14 @@ const (
 	ParentEnd   = "/.."
 )
 
+// ru:
 // валидация строки
 // чего не должно быть в строке:
-// - .. - родительского каталога
+// .. - родительского каталога
+// eng:
+// path validation
+// the string must not contain:
+// .. - parent catalog
 func ValidatePath(path string) bool {
 	pathLen := len(path)
 	parentEndLen := len(ParentEnd)

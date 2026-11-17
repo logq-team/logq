@@ -11,7 +11,8 @@ import (
 
 const (
 	DestPath = "logq_archive"
-	//буфер 2МБ
+	//буфер размером 2МБ
+	//size of buffer is 2MB
 	BufferSizeInBytes = 1024 * 1024 * 2
 )
 

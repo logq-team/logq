@@ -1,17 +1,26 @@
 package engine
 
-import "logq/src/internal/archive"
+import (
+	"errors"
+	"logq/src/internal/archive"
+)
 
-func ProcessArchive(archiveName string) error {
+func HandleOverview(archiveName string) error {
 	_, err := archive.UnpackArchive(archiveName)
 
 	if err != nil {
 		return err
 	}
 
-	//for _, fileN := range fileNames {
-	//	println(fileN)
-	//}
-
+	println("Overview op")
 	return nil
+}
+
+func HandleHelp() string {
+	return "logq --grep [PATTERN] [PATH_TO_ARCHIVE] - processing logs by pattern\n" +
+		"logq --overview [PATH_TO_ARCHIVE] - simple logs processing, counting WARN and ERROR"
+}
+
+func HandleGrep(pattern string, archiveName string) error {
+	return errors.New("Soon...")
 }
