@@ -31,7 +31,7 @@ cpp-test: build/overview-test
 build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/overview.h src/engine/lq_overview.cpp src/engine/lq_overview.h
 	@$(PKG_CONFIG) --exists gtest_main || { echo "[CPP][ERROR] Install libgtest-dev and pkg-config to run C++ tests" >&2; exit 1; }
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		$(shell $(PKG_CONFIG) --cflags gtest_main) tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/lq_overview.cpp \
 		-o $@ $(shell $(PKG_CONFIG) --libs gtest_main)
 
@@ -57,7 +57,7 @@ overview-api-demo: build/overview-api-demo
 
 build/overview-api-demo: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 overview-api-demo-debug: build/overview-api-demo-debug
@@ -66,7 +66,7 @@ overview-api-demo-debug: build/overview-api-demo-debug
 
 build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 hooks:
