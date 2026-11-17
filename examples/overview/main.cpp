@@ -1,39 +1,41 @@
 #include "overview.h"
+#include "log.h"
 
 #include <exception>
 #include <fstream>
-#include <iostream>
 
-static constexpr std::string info_prefix{"[CPP][INFO] "};
-static constexpr std::string error_prefix{"[CPP][ERROR] "};
+using std::ios;
+using std::exception;
+using std::ifstream;
 
 int main(int argc, char* argv[])
 {
+    INFO("Sequential overview of one file without the C API or Go");
+
     if (argc != 2)
     {
-        std::cerr << error_prefix << "Usage: overview-demo FILE\n";
+        ERROR("Usage: overview-demo FILE");
         return 2;
     }
 
-    std::ifstream file(argv[1], std::ios::binary);
+    ifstream file(argv[1], ios::binary);
     if (!file.is_open())
     {
-        std::cerr << error_prefix << "can't open file: " << argv[1] << '\n';
+        ERROR("can't open file: {}", argv[1]);
         return 1;
     }
 
     try
     {
-        const file_info fi = analyze_file(file);
-        std::cout << info_prefix << "bytes = " << fi.bytes << '\n'
-                  << info_prefix << "lines = " << fi.lines << '\n'
-                  << info_prefix << "error_counter = " << fi.error_counter << '\n'
-                  << info_prefix << "warn_counter = " << fi.warn_counter
-                  << '\n';
+        const file_info stats = analyze_file(file);
+        INFO("bytes = {}", stats.bytes);
+        INFO("lines = {}", stats.lines);
+        INFO("error_counter = {}", stats.error_counter);
+        INFO("warn_counter = {}", stats.warn_counter);
     }
-    catch (const std::exception& error)
+    catch (const exception& error)
     {
-        std::cerr << error_prefix << argv[1] << ": " << error.what() << '\n';
+        ERROR("{}: {}", argv[1], error.what());
         return 1;
     }
     return 0;

@@ -1,65 +1,65 @@
 #include "lq_overview.h"
+#include "log.h"
 
-#include <iostream>
 #include <iterator>
-#include <string>
 
-static constexpr std::string info_prefix{"[CPP][INFO] "};
-static constexpr std::string error_prefix{"[CPP][ERROR] "};
+using std::size;
 
 int main()
 {
-    const char* paths[]{
+    INFO("Batch overview through the C API without Go including a missing file");
+
+    const char* paths[] = {
         "res/cpp/test.log",
         "res/cpp/nonexistent-api-demo.log",
         "res/cpp/test.log"
     };
 
-    lq_overview_request request{
+    lq_overview_request request = {
         .paths = paths,
-        .file_count = std::size(paths),
+        .file_count = size(paths),
         .workers = 1
     };
-    lq_file_stats results[std::size(paths)]{};
+    lq_file_stats results[size(paths)] = {};
 
-    std::cout << info_prefix << "file_count = " << request.file_count << '\n'
-              << info_prefix << "workers = " << request.workers << '\n'
-              << info_prefix << "result_capacity = " << std::size(results) << '\n';
-    for (std::size_t i{}; i < request.file_count; ++i)
+    INFO("file_count = {}", request.file_count);
+    INFO("workers = {}", request.workers);
+    INFO("result_capacity = {}", size(results));
+    for (size_t i = 0; i < request.file_count; ++i)
     {
-        std::cout << info_prefix << "paths[" << i << "] = " << request.paths[i] << '\n';
+        INFO("paths[{}] = {}", i, request.paths[i]);
     }
 
-    const int32_t status = lq_overview(&request, results, std::size(results));
+    const int32_t status = lq_overview(&request, results, size(results));
     if (status == LQ_CALL_OK)
     {
-        int exit_code{};
-        for (std::size_t i{}; i < request.file_count; ++i)
+        int exit_code = 0;
+        for (size_t i = 0; i < request.file_count; ++i)
         {
             if (results[i].status != LQ_FILE_OK)
             {
-                std::cerr << error_prefix << "results[" << i << "] " << request.paths[i]
-                          << ": file_status = " << results[i].status << '\n';
+                ERROR("results[{}] {}: file_status = {}",
+                        i, request.paths[i], results[i].status);
                 exit_code = 1;
                 continue;
             }
 
-            std::cout << info_prefix << "results[" << i << "] " << request.paths[i] << '\n'
-                      << info_prefix << "bytes = " << results[i].bytes << '\n'
-                      << info_prefix << "lines = " << results[i].lines << '\n'
-                      << info_prefix << "error_lines = " << results[i].error_lines << '\n'
-                      << info_prefix << "warn_lines = " << results[i].warn_lines << '\n';
+            INFO("results[{}] {}", i, request.paths[i]);
+            INFO("bytes = {}", results[i].bytes);
+            INFO("lines = {}", results[i].lines);
+            INFO("error_lines = {}", results[i].error_lines);
+            INFO("warn_lines = {}", results[i].warn_lines);
         }
         return exit_code;
     }
 
     if (status == LQ_CALL_UNSUPPORTED)
     {
-        std::cout << info_prefix << "lq_overview returned LQ_CALL_UNSUPPORTED\n"
-                  << info_prefix << "Only one worker is supported for now\n";
+        INFO("lq_overview returned LQ_CALL_UNSUPPORTED");
+        INFO("Requested processing mode is unsupported");
         return 0;
     }
 
-    std::cerr << error_prefix << "Unexpected call status = " << status << '\n';
+    ERROR("Unexpected call status = {}", status);
     return 1;
 }

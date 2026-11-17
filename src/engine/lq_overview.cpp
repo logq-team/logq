@@ -5,6 +5,12 @@
 #include <limits>
 #include <stdexcept>
 
+using std::ios;
+using std::ifstream;
+using std::min;
+using std::runtime_error;
+using int_limits = std::numeric_limits<int>;
+
 namespace
 {
 int32_t validate_request(
@@ -28,7 +34,7 @@ int32_t validate_request(
         return LQ_CALL_INVALID_ARGUMENT;
     }
 
-    for (size_t i{}; i < request->file_count; ++i)
+    for (size_t i = 0; i < request->file_count; ++i)
     {
         if (request->paths[i] == nullptr)
         {
@@ -44,21 +50,21 @@ void process_file(const char* path, lq_file_stats& result)
     result = {};
     try
     {
-        std::ifstream file(path, std::ios::binary);
+        ifstream file(path, ios::binary);
         if (!file.is_open())
         {
             result.status = LQ_FILE_OPEN_ERROR;
             return;
         }
 
-        const file_info fi = analyze_file(file);
-        result.bytes = fi.bytes;
-        result.lines = fi.lines;
-        result.error_lines = fi.error_counter;
-        result.warn_lines = fi.warn_counter;
+        const file_info stats = analyze_file(file);
+        result.bytes = stats.bytes;
+        result.lines = stats.lines;
+        result.error_lines = stats.error_counter;
+        result.warn_lines = stats.warn_counter;
         result.status = LQ_FILE_OK;
     }
-    catch (const std::runtime_error&)
+    catch (const runtime_error&)
     {
         result.status = LQ_FILE_READ_ERROR;
     }
@@ -70,7 +76,7 @@ void process_file(const char* path, lq_file_stats& result)
 
 int32_t process_files_sequential(const lq_overview_request* request, lq_file_stats* results)
 {
-    for (size_t i{}; i < request->file_count; ++i)
+    for (size_t i = 0; i < request->file_count; ++i)
     {
         process_file(request->paths[i], results[i]);
     }
@@ -85,10 +91,10 @@ int32_t process_files_parallel(const lq_overview_request* request, lq_file_stats
     }
 
     // Limit requested threads to the file count and the OpenMP int range
-    const int worker_count = static_cast<int>(std::min<size_t>({
+    const int worker_count = static_cast<int>(min<size_t>({
         request->workers,
         request->file_count,
-        std::numeric_limits<int>::max()
+        int_limits::max()
     }));
 
     // Assign files to threads round robin with one file per chunk

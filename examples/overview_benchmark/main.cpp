@@ -1,165 +1,222 @@
 #include "lq_overview.h"
+#include "log.h"
 
 #include <algorithm>
 #include <charconv>
 #include <chrono>
-#include <iomanip>
-#include <iostream>
-#include <string>
 #include <string_view>
 #include <vector>
 
-static constexpr std::string info_prefix{"[CPP][INFO] "};
-static constexpr std::string error_prefix{"[CPP][ERROR] "};
+using std::errc;
+using std::fill;
+using std::find;
+using std::from_chars;
+using std::sort;
+using std::chrono::steady_clock;
+using std::string_view;
+using std::vector;
+using elapsed_milliseconds = std::chrono::duration<double, std::milli>;
 
-int main(int argc, char* argv[])
+namespace
 {
-    std::cout << info_prefix << "Compare repeated overview timings against sequential results\n";
+constexpr size_t repeat_count = 7;
 
-    if (argc < 3)
-    {
-        std::cerr << error_prefix << "Usage: overview-benchmark WORKERS FILE [FILE ...]\n";
-        return 2;
-    }
-
-    std::vector<uint32_t> worker_counts{1};
-    std::string_view remaining{argv[1]};
+bool parse_worker_counts(string_view remaining, vector<uint32_t>& worker_counts)
+{
     // This is needed for "BENCH_WORKERS=1,2,3,4" feature to run different workers
     while (true)
     {
         const size_t comma = remaining.find(',');
-        const std::string_view argument = remaining.substr(0, comma);
-        uint32_t workers{};
-        const auto parsed = std::from_chars(argument.data(), argument.data() + argument.size(), workers);
-        if (parsed.ec != std::errc{} || parsed.ptr != argument.data() + argument.size() || workers == 0)
+        const string_view argument = remaining.substr(0, comma);
+        uint32_t workers = 0;
+        const auto parsed = from_chars(argument.data(), argument.data() + argument.size(), workers);
+        if (parsed.ec != errc{} || parsed.ptr != argument.data() + argument.size() || workers == 0)
         {
-            std::cerr << error_prefix << "WORKERS must be comma-separated positive uint32 values\n";
-            return 2;
+            ERROR("WORKERS must be comma-separated positive uint32 values");
+            return false;
         }
 
-        if (std::find(worker_counts.begin(), worker_counts.end(), workers) == worker_counts.end())
+        if (find(worker_counts.begin(), worker_counts.end(), workers) == worker_counts.end())
         {
             worker_counts.push_back(workers);
         }
-        if (comma == std::string_view::npos)
+        if (comma == string_view::npos)
         {
             break;
         }
         remaining.remove_prefix(comma + 1);
     }
+    return true;
+}
 
-    lq_overview_request request{
-        .paths = argv + 2,
-        .file_count = static_cast<size_t>(argc - 2),
-        .workers = 1
-    };
-    std::vector<lq_file_stats> results(request.file_count);
-    std::vector<lq_file_stats> sequential(request.file_count);
-
+bool collect_reference(
+    const lq_overview_request& request,
+    vector<lq_file_stats>& reference,
+    lq_file_stats& totals
+)
+{
     lq_overview_request sequential_request = request;
     sequential_request.workers = 1;
-    const int32_t sequential_status = lq_overview(&sequential_request, sequential.data(), sequential.size());
-    if (sequential_status != LQ_CALL_OK)
+    const int32_t status = lq_overview(&sequential_request, reference.data(), reference.size());
+    if (status != LQ_CALL_OK)
     {
-        std::cerr << error_prefix << "Sequential reference returned call_status = " << sequential_status << '\n';
-        return 1;
+        ERROR("Sequential reference returned call_status = {}", status);
+        return false;
     }
 
-    uint64_t bytes{};
-    uint64_t lines{};
-    uint64_t error_lines{};
-    uint64_t warn_lines{};
-    for (size_t i{}; i < sequential.size(); ++i)
+    for (size_t i = 0; i < reference.size(); ++i)
     {
-        const lq_file_stats& result = sequential[i];
+        const lq_file_stats& result = reference[i];
         if (result.status != LQ_FILE_OK)
         {
-            std::cerr << error_prefix << request.paths[i] << ": file_status = " << result.status << '\n';
-            return 1;
+            ERROR("{}: file_status = {}", request.paths[i], result.status);
+            return false;
         }
-
-        bytes += result.bytes;
-        lines += result.lines;
-        error_lines += result.error_lines;
-        warn_lines += result.warn_lines;
+        totals.bytes += result.bytes;
+        totals.lines += result.lines;
+        totals.error_lines += result.error_lines;
+        totals.warn_lines += result.warn_lines;
     }
+    return true;
+}
 
-    constexpr size_t repeat_count{7};
-    std::vector<std::vector<double>> timings(worker_counts.size());
-    for (auto& samples : timings)
+bool results_match(
+    const lq_overview_request& request,
+    const vector<lq_file_stats>& results,
+    const vector<lq_file_stats>& reference
+)
+{
+    for (size_t i = 0; i < results.size(); ++i)
+    {
+        const lq_file_stats& result = results[i];
+        const lq_file_stats& expected = reference[i];
+        if (result.bytes != expected.bytes || result.lines != expected.lines
+            || result.error_lines != expected.error_lines || result.warn_lines != expected.warn_lines
+            || result.status != expected.status)
+        {
+            ERROR("workers = {} sequential result mismatch at index {}: {}",
+                    request.workers, i, request.paths[i]);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool run_benchmark(
+    lq_overview_request request,
+    const vector<uint32_t>& worker_counts,
+    const vector<lq_file_stats>& reference,
+    vector<vector<double>>& timings
+)
+{
+    vector<lq_file_stats> results(request.file_count);
+    for (vector<double>& samples : timings)
     {
         samples.reserve(repeat_count);
     }
 
-    for (size_t round{}; round <= repeat_count; ++round)
+    // Round zero warms every mode and does not contribute to the timings
+    for (size_t round = 0; round <= repeat_count; ++round)
     {
-        for (size_t offset{}; offset < worker_counts.size(); ++offset)
+        for (size_t offset = 0; offset < worker_counts.size(); ++offset)
         {
             const size_t mode = (offset + round) % worker_counts.size();
             request.workers = worker_counts[mode];
-            std::fill(results.begin(), results.end(), lq_file_stats{0, 0, 0, 0, LQ_FILE_INTERNAL_ERROR});
+            fill(results.begin(), results.end(), lq_file_stats{0, 0, 0, 0, LQ_FILE_INTERNAL_ERROR});
 
-            const auto start = std::chrono::steady_clock::now();
+            const auto start = steady_clock::now();
             const int32_t status = lq_overview(&request, results.data(), results.size());
-            const auto finish = std::chrono::steady_clock::now();
+            const auto finish = steady_clock::now();
 
             if (status != LQ_CALL_OK)
             {
-                std::cerr << error_prefix << "workers = " << request.workers
-                          << " lq_overview returned call_status = " << status << '\n';
-                return 1;
+                ERROR("workers = {} lq_overview returned call_status = {}",
+                        request.workers, status);
+                return false;
             }
-
-            for (size_t i{}; i < results.size(); ++i)
+            if (!results_match(request, results, reference))
             {
-                const lq_file_stats& result = results[i];
-                const lq_file_stats& expected = sequential[i];
-                if (result.bytes != expected.bytes || result.lines != expected.lines
-                    || result.error_lines != expected.error_lines || result.warn_lines != expected.warn_lines
-                    || result.status != expected.status)
-                {
-                    std::cerr << error_prefix << "workers = " << request.workers
-                              << " sequential result mismatch at index " << i << ": " << request.paths[i] << '\n';
-                    return 1;
-                }
+                return false;
             }
 
             if (round > 0)
             {
-                const std::chrono::duration<double, std::milli> elapsed = finish - start;
+                const elapsed_milliseconds elapsed = finish - start;
                 timings[mode].push_back(elapsed.count());
             }
         }
     }
 
-    for (auto& samples : timings)
+    for (vector<double>& samples : timings)
     {
-        std::sort(samples.begin(), samples.end());
+        sort(samples.begin(), samples.end());
     }
+    return true;
+}
+
+void print_report(
+    size_t file_count,
+    const lq_file_stats& totals,
+    const vector<uint32_t>& worker_counts,
+    const vector<vector<double>>& timings
+)
+{
+    INFO("Per-file results match the sequential reference");
+    INFO("files = {}", file_count);
+    INFO("bytes = {}", totals.bytes);
+    INFO("lines = {}", totals.lines);
+    INFO("error_lines = {}", totals.error_lines);
+    INFO("warn_lines = {}", totals.warn_lines);
+    INFO("warmups_per_mode = 1");
+    INFO("repeats_per_mode = {}", repeat_count);
+    INFO("Warm file cache with rotating mode order");
+    INFO("WORKERS   MEDIAN_MS      MIN_MS      MAX_MS   SPEEDUP");
+
     const double sequential_ms = timings[0][repeat_count / 2];
-
-    std::cout << info_prefix << "Per-file results match the sequential reference\n"
-              << info_prefix << "files = " << request.file_count << '\n'
-              << info_prefix << "bytes = " << bytes << '\n'
-              << info_prefix << "lines = " << lines << '\n'
-              << info_prefix << "error_lines = " << error_lines << '\n'
-              << info_prefix << "warn_lines = " << warn_lines << '\n'
-              << info_prefix << "warmups_per_mode = 1\n"
-              << info_prefix << "repeats_per_mode = " << repeat_count << '\n'
-              << info_prefix << "Warm file cache with rotating mode order\n"
-              << info_prefix << "WORKERS   MEDIAN_MS      MIN_MS      MAX_MS   SPEEDUP\n";
-
-    for (size_t mode{}; mode < worker_counts.size(); ++mode)
+    for (size_t mode = 0; mode < worker_counts.size(); ++mode)
     {
-        const auto& samples = timings[mode];
+        const vector<double>& samples = timings[mode];
         const double median_ms = samples[repeat_count / 2];
-        std::cout << info_prefix << std::fixed << std::setprecision(3)
-                  << std::setw(7) << worker_counts[mode]
-                  << std::setw(12) << median_ms
-                  << std::setw(12) << samples.front()
-                  << std::setw(12) << samples.back()
-                  << std::setw(10) << std::setprecision(2) << sequential_ms / median_ms << "x\n";
+        INFO("{:>7}{:>12.3f}{:>12.3f}{:>12.3f}{:>10.2f}x",
+                worker_counts[mode], median_ms, samples.front(), samples.back(), sequential_ms / median_ms);
+    }
+}
+}
+
+int main(int argc, char* argv[])
+{
+    INFO("Compare repeated overview timings against sequential results");
+
+    if (argc < 3)
+    {
+        ERROR("Usage: overview-benchmark WORKERS FILE [FILE ...]");
+        return 2;
     }
 
+    vector<uint32_t> worker_counts = {1};
+    if (!parse_worker_counts(argv[1], worker_counts))
+    {
+        return 2;
+    }
+
+    lq_overview_request request = {
+        .paths = argv + 2,
+        .file_count = static_cast<size_t>(argc - 2),
+        .workers = 1
+    };
+    vector<lq_file_stats> reference(request.file_count);
+    lq_file_stats totals = {};
+    if (!collect_reference(request, reference, totals))
+    {
+        return 1;
+    }
+
+    vector<vector<double>> timings(worker_counts.size());
+    if (!run_benchmark(request, worker_counts, reference, timings))
+    {
+        return 1;
+    }
+
+    print_report(request.file_count, totals, worker_counts, timings);
     return 0;
 }

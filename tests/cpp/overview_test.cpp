@@ -9,6 +9,16 @@
 #include <stdexcept>
 #include <unistd.h>
 
+using std::ifstream;
+using std::ios;
+using std::ofstream;
+using std::ostream;
+using std::remove;
+using std::runtime_error;
+using std::size_t;
+using std::string;
+using uint32_limits = std::numeric_limits<uint32_t>;
+
 namespace {
 
 class temporary_file {
@@ -19,7 +29,7 @@ public:
         const int fd = mkstemp(name);
         if (fd == -1)
         {
-            throw std::runtime_error("can't create temporary file");
+            throw runtime_error("can't create temporary file");
         }
         close(fd);
         path = name;
@@ -27,32 +37,32 @@ public:
 
     ~temporary_file()
     {
-        std::remove(path.c_str());
+        remove(path.c_str());
     }
 
-    void write(const std::string& content)
+    void write(const string& content)
     {
-        std::ofstream file(path, std::ios::binary | std::ios::trunc);
+        ofstream file(path, ios::binary | ios::trunc);
         file.write(content.data(), content.size());
         file.close();
         if (!file)
         {
-            throw std::runtime_error("can't write temporary file");
+            throw runtime_error("can't write temporary file");
         }
     }
 
-    std::string path;
+    string path;
 };
 
 struct test_case {
     const char* name;
-    std::string content;
-    std::size_t lines;
-    std::size_t errors;
-    std::size_t warnings;
+    string content;
+    size_t lines;
+    size_t errors;
+    size_t warnings;
 };
 
-void PrintTo(const test_case& test, std::ostream* output)
+void PrintTo(const test_case& test, ostream* output)
 {
     *output << test.name;
 }
@@ -70,7 +80,7 @@ TEST_P(overview_content_test, CollectsStatistics)
 {
     const test_case& test = GetParam();
     input.write(test.content);
-    std::ifstream file(input.path, std::ios::binary);
+    ifstream file(input.path, ios::binary);
     ASSERT_TRUE(file.is_open());
 
     const file_info fi = analyze_file(file);
@@ -102,9 +112,9 @@ INSTANTIATE_TEST_SUITE_P(
         test_case{"CaseSensitive", "error Error warn Warn warning Warning", 1, 0, 0},
         test_case{"Punctuation", "[ERROR]: (WARNING), WARN.", 1, 1, 1},
         test_case{"Whitespace", " \t\r\n \t", 2, 0, 0},
-        test_case{"EmbeddedNul", std::string{"ERROR\0WARN", 10}, 1, 1, 1},
-        test_case{"LongLine", std::string(20000, 'x') + " ERROR WARNING\n", 1, 1, 1},
-        test_case{"TokenAtOldBufferBoundary", std::string(9996, 'x') + " ERROR\n", 1, 1, 0}
+        test_case{"EmbeddedNul", string{"ERROR\0WARN", 10}, 1, 1, 1},
+        test_case{"LongLine", string(20000, 'x') + " ERROR WARNING\n", 1, 1, 1},
+        test_case{"TokenAtOldBufferBoundary", string(9996, 'x') + " ERROR\n", 1, 1, 0}
     ),
     [](const ::testing::TestParamInfo<test_case>& info)
     {
@@ -114,18 +124,18 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_F(overview_test, FileOpenFailure)
 {
-    std::ifstream file(input.path + ".missing", std::ios::binary);
+    ifstream file(input.path + ".missing", ios::binary);
     ASSERT_FALSE(file.is_open());
-    EXPECT_THROW(analyze_file(file), std::runtime_error);
+    EXPECT_THROW(analyze_file(file), runtime_error);
 }
 
 TEST_F(overview_test, ReadFailure)
 {
     input.write("ERROR\n");
-    std::ifstream file(input.path, std::ios::binary);
+    ifstream file(input.path, ios::binary);
     ASSERT_TRUE(file.is_open());
-    file.setstate(std::ios::badbit);
-    EXPECT_THROW(analyze_file(file), std::runtime_error);
+    file.setstate(ios::badbit);
+    EXPECT_THROW(analyze_file(file), runtime_error);
 }
 
 class overview_api_test : public overview_test {
@@ -147,7 +157,7 @@ TEST_F(overview_api_test, PreservesOrderAndExtraStorage)
         {6, 1, 1, 0, LQ_FILE_OK},
         {10, 2, 0, 2, LQ_FILE_OK}
     };
-    for (std::size_t i{}; i < request.file_count; ++i)
+    for (size_t i{}; i < request.file_count; ++i)
     {
         SCOPED_TRACE(i);
         EXPECT_EQ(results[i].bytes, expected[i].bytes);
@@ -166,7 +176,7 @@ TEST_F(overview_api_test, PreservesOrderAndExtraStorage)
 TEST_F(overview_api_test, ContinuesAfterFileErrors)
 {
     input.write("ERROR\n");
-    const std::string missing = input.path + ".missing";
+    const string missing = input.path + ".missing";
     // A directory opens on Linux but fails when read
     const char* paths[]{input.path.c_str(), missing.c_str(), ".", input.path.c_str()};
     lq_overview_request request{paths, 4, 1};
@@ -183,7 +193,7 @@ TEST_F(overview_api_test, ContinuesAfterFileErrors)
         {0, 0, 0, 0, LQ_FILE_READ_ERROR},
         {6, 1, 1, 0, LQ_FILE_OK}
     };
-    for (std::size_t i{}; i < request.file_count; ++i)
+    for (size_t i{}; i < request.file_count; ++i)
     {
         SCOPED_TRACE(i);
         EXPECT_EQ(results[i].bytes, expected[i].bytes);
@@ -239,7 +249,7 @@ TEST_F(overview_api_test, ParallelMatchesSequential)
     input.write("ERROR\r\nINFO\nWARN");
     temporary_file second;
     second.write("WARNING\nWARN\n");
-    const std::string missing = input.path + ".missing";
+    const string missing = input.path + ".missing";
     const char* paths[]{
         second.path.c_str(), input.path.c_str(), missing.c_str(), ".", second.path.c_str()
     };
@@ -247,7 +257,7 @@ TEST_F(overview_api_test, ParallelMatchesSequential)
     lq_file_stats sequential[5]{};
     ASSERT_EQ(lq_overview(&request, sequential, 5), LQ_CALL_OK);
 
-    for (uint32_t workers : {2u, 8u, std::numeric_limits<uint32_t>::max()})
+    for (uint32_t workers : {2u, 8u, uint32_limits::max()})
     {
         SCOPED_TRACE(workers);
         request.workers = workers;
@@ -258,7 +268,7 @@ TEST_F(overview_api_test, ParallelMatchesSequential)
         }
 
         ASSERT_EQ(lq_overview(&request, parallel, 6), LQ_CALL_OK);
-        for (std::size_t i{}; i < request.file_count; ++i)
+        for (size_t i{}; i < request.file_count; ++i)
         {
             SCOPED_TRACE(i);
             EXPECT_EQ(parallel[i].bytes, sequential[i].bytes);

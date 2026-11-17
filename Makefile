@@ -44,7 +44,7 @@ build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/eng
 overview-demo: build/overview-demo
 	./build/overview-demo "$(OVERVIEW_FILE)"
 
-build/overview-demo: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h Makefile
+build/overview-demo: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h Makefile src/engine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++23 -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview/main.cpp src/engine/overview.cpp -o $@
@@ -53,7 +53,7 @@ overview-demo-debug: build/overview-demo-debug
 	$(GDB) -q -ex 'break main' -ex 'break analyze_file' -ex run \
 		--args ./build/overview-demo-debug "$(OVERVIEW_FILE)"
 
-build/overview-demo-debug: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h Makefile
+build/overview-demo-debug: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h Makefile src/engine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++23 -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview/main.cpp src/engine/overview.cpp -o $@
@@ -61,7 +61,7 @@ build/overview-demo-debug: examples/overview/main.cpp src/engine/overview.cpp sr
 overview-api-demo: build/overview-api-demo
 	./build/overview-api-demo
 
-build/overview-api-demo: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
+build/overview-api-demo: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile src/engine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
@@ -70,7 +70,7 @@ overview-api-demo-debug: build/overview-api-demo-debug
 	$(GDB) -q -ex 'break main' -ex 'break lq_overview' -ex run \
 		--args ./build/overview-api-demo-debug
 
-build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
+build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile src/engine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
@@ -78,7 +78,7 @@ build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_over
 overview-bench: build/overview-benchmark
 	./build/overview-benchmark "$(BENCH_WORKERS)" $(BENCH_FILES)
 
-build/overview-benchmark: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
+build/overview-benchmark: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile src/engine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -O2 -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
@@ -87,7 +87,7 @@ overview-bench-debug: build/overview-benchmark-debug
 	$(GDB) -q -ex 'break main' -ex 'break lq_overview' -ex run \
 		--args ./build/overview-benchmark-debug "$(BENCH_WORKERS)" $(BENCH_FILES)
 
-build/overview-benchmark-debug: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
+build/overview-benchmark-debug: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile src/engine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
