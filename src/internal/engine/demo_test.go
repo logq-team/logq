@@ -23,7 +23,7 @@ package engine
 //			if err != nil {
 //				t.Fatal(err)
 //			}
-//			want := DemoResult{Bytes: tt.bytes, Newlines: tt.newlines, Doubled: tt.doubled, CPPStandard: 202002}
+//			want := DemoResult{Bytes: tt.bytes, Newlines: tt.newlines, Doubled: tt.doubled, CPPStandard: 202302}
 //			if got != want {
 //				t.Fatalf("Demo() = %+v, want %+v", got, want)
 //			}

@@ -1,7 +1,7 @@
 package engine
 
 /*
-#cgo CXXFLAGS: -std=c++20 -Wall -Wextra -Wpedantic
+#cgo CXXFLAGS: -std=c++23 -Wall -Wextra -Wpedantic
 #cgo LDFLAGS: -lstdc++
 #include <stdlib.h>
 #include "demo.h"

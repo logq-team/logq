@@ -1,5 +1,8 @@
 GO ?= go
-CXX ?= g++
+ifeq ($(origin CXX), default)
+CXX = g++-14
+endif
+CXX ?= g++-14
 GDB ?= gdb
 PKG_CONFIG ?= pkg-config
 OVERVIEW_FILE ?= res/cpp/test.log
@@ -31,62 +34,62 @@ test: cpp-test
 cpp-test: build/overview-test
 	./build/overview-test
 
-build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/overview.h src/engine/lq_overview.cpp src/engine/lq_overview.h
+build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/overview.h src/engine/lq_overview.cpp src/engine/lq_overview.h Makefile
 	@$(PKG_CONFIG) --exists gtest_main || { echo "[CPP][ERROR] Install libgtest-dev and pkg-config to run C++ tests" >&2; exit 1; }
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		$(shell $(PKG_CONFIG) --cflags gtest_main) tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/lq_overview.cpp \
 		-o $@ $(shell $(PKG_CONFIG) --libs gtest_main)
 
 overview-demo: build/overview-demo
 	./build/overview-demo "$(OVERVIEW_FILE)"
 
-build/overview-demo: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h
+build/overview-demo: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h Makefile
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++23 -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview/main.cpp src/engine/overview.cpp -o $@
 
 overview-demo-debug: build/overview-demo-debug
 	$(GDB) -q -ex 'break main' -ex 'break analyze_file' -ex run \
 		--args ./build/overview-demo-debug "$(OVERVIEW_FILE)"
 
-build/overview-demo-debug: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h
+build/overview-demo-debug: examples/overview/main.cpp src/engine/overview.cpp src/engine/overview.h Makefile
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++23 -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview/main.cpp src/engine/overview.cpp -o $@
 
 overview-api-demo: build/overview-api-demo
 	./build/overview-api-demo
 
-build/overview-api-demo: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+build/overview-api-demo: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 overview-api-demo-debug: build/overview-api-demo-debug
 	$(GDB) -q -ex 'break main' -ex 'break lq_overview' -ex run \
 		--args ./build/overview-api-demo-debug
 
-build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 overview-bench: build/overview-benchmark
 	./build/overview-benchmark "$(BENCH_WORKERS)" $(BENCH_FILES)
 
-build/overview-benchmark: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+build/overview-benchmark: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -O2 -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -O2 -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 overview-bench-debug: build/overview-benchmark-debug
 	$(GDB) -q -ex 'break main' -ex 'break lq_overview' -ex run \
 		--args ./build/overview-benchmark-debug "$(BENCH_WORKERS)" $(BENCH_FILES)
 
-build/overview-benchmark-debug: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+build/overview-benchmark-debug: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h Makefile
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++23 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 hooks:
