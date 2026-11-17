@@ -17,8 +17,8 @@ func HandleOverview(archiveName string) error {
 }
 
 func HandleHelp() string {
-	return "grep [PATTERN] [PATH_TO_ARCHIVE] - processing logs by pattern\n" +
-		"logq overview [PATH_TO_ARCHIVE] - simple logs processing, counting WARN and ERROR"
+	return "--grep [PATTERN] [PATH_TO_ARCHIVE] - processing logs by pattern\n" +
+		"--overview [PATH_TO_ARCHIVE] - simple logs processing, counting WARN and ERROR"
 }
 
 func HandleGrep(pattern string, archiveName string) error {
