@@ -3,10 +3,13 @@ CXX ?= g++
 GDB ?= gdb
 PKG_CONFIG ?= pkg-config
 OVERVIEW_FILE ?= res/cpp/test.log
+BENCH_FILES ?= $(OVERVIEW_FILE)
+BENCH_WORKERS ?= 1,2,4,8
 CXX_DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer
 
 .PHONY: all build debug test hooks overview-demo cpp-test overview-api-demo
 .PHONY: debug-demo overview-demo-debug overview-api-demo-debug
+.PHONY: overview-bench overview-bench-debug
 
 all: build
 
@@ -31,7 +34,7 @@ cpp-test: build/overview-test
 build/overview-test: tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/overview.h src/engine/lq_overview.cpp src/engine/lq_overview.h
 	@$(PKG_CONFIG) --exists gtest_main || { echo "[CPP][ERROR] Install libgtest-dev and pkg-config to run C++ tests" >&2; exit 1; }
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		$(shell $(PKG_CONFIG) --cflags gtest_main) tests/cpp/overview_test.cpp src/engine/overview.cpp src/engine/lq_overview.cpp \
 		-o $@ $(shell $(PKG_CONFIG) --libs gtest_main)
 
@@ -57,7 +60,7 @@ overview-api-demo: build/overview-api-demo
 
 build/overview-api-demo: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 overview-api-demo-debug: build/overview-api-demo-debug
@@ -66,8 +69,25 @@ overview-api-demo-debug: build/overview-api-demo-debug
 
 build/overview-api-demo-debug: examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
 	mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -Wall -Wextra -Wpedantic -I src/engine \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
 		examples/overview_api/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
+
+overview-bench: build/overview-benchmark
+	./build/overview-benchmark "$(BENCH_WORKERS)" $(BENCH_FILES)
+
+build/overview-benchmark: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+	mkdir -p build
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -O2 -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
+
+overview-bench-debug: build/overview-benchmark-debug
+	$(GDB) -q -ex 'break main' -ex 'break lq_overview' -ex run \
+		--args ./build/overview-benchmark-debug "$(BENCH_WORKERS)" $(BENCH_FILES)
+
+build/overview-benchmark-debug: examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/lq_overview.h src/engine/overview.cpp src/engine/overview.h
+	mkdir -p build
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(CXX_DEBUG_FLAGS) -std=c++20 -fopenmp -Wall -Wextra -Wpedantic -I src/engine \
+		examples/overview_benchmark/main.cpp src/engine/lq_overview.cpp src/engine/overview.cpp -o $@
 
 hooks:
 	git config core.hooksPath .githooks

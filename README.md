@@ -65,6 +65,13 @@ make overview-api-demo
 make overview-api-demo-debug
 ```
 
+Бенчмарк overview, раскидывает файлы по ядрам, прогрев и 7 замеров каждого режима
+
+```sh
+make overview-bench BENCH_WORKERS=1,2,4,8 BENCH_FILES="/path/to/logs/*.txt"
+make overview-bench-debug BENCH_WORKERS=2
+```
+
 TUI с логами в отдельном терминале
 
 Во втором терминале выполни `tty` и оставь его открытым

@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <stdexcept>
 #include <unistd.h>
 
@@ -197,6 +198,8 @@ TEST_F(overview_api_test, AcceptsEmptyRequest)
 {
     lq_overview_request request{nullptr, 0, 1};
     EXPECT_EQ(lq_overview(&request, nullptr, 0), LQ_CALL_OK);
+    request.workers = 2;
+    EXPECT_EQ(lq_overview(&request, nullptr, 0), LQ_CALL_OK);
 }
 
 TEST_F(overview_api_test, RejectsInvalidRequestsWithoutWritingResults)
@@ -231,18 +234,45 @@ TEST_F(overview_api_test, RejectsInvalidRequestsWithoutWritingResults)
     }
 }
 
-TEST_F(overview_api_test, RejectsParallelRequestWithoutWritingResults)
+TEST_F(overview_api_test, ParallelMatchesSequential)
 {
-    const char* paths[]{input.path.c_str()};
-    lq_overview_request request{paths, 1, 2};
-    lq_file_stats result{11, 12, 13, 14, LQ_FILE_INTERNAL_ERROR};
+    input.write("ERROR\r\nINFO\nWARN");
+    temporary_file second;
+    second.write("WARNING\nWARN\n");
+    const std::string missing = input.path + ".missing";
+    const char* paths[]{
+        second.path.c_str(), input.path.c_str(), missing.c_str(), ".", second.path.c_str()
+    };
+    lq_overview_request request{paths, 5, 1};
+    lq_file_stats sequential[5]{};
+    ASSERT_EQ(lq_overview(&request, sequential, 5), LQ_CALL_OK);
 
-    EXPECT_EQ(lq_overview(&request, &result, 1), LQ_CALL_UNSUPPORTED);
-    EXPECT_EQ(result.bytes, 11);
-    EXPECT_EQ(result.lines, 12);
-    EXPECT_EQ(result.error_lines, 13);
-    EXPECT_EQ(result.warn_lines, 14);
-    EXPECT_EQ(result.status, LQ_FILE_INTERNAL_ERROR);
+    for (uint32_t workers : {2u, 8u, std::numeric_limits<uint32_t>::max()})
+    {
+        SCOPED_TRACE(workers);
+        request.workers = workers;
+        lq_file_stats parallel[6];
+        for (auto& result : parallel)
+        {
+            result = {11, 12, 13, 14, LQ_FILE_INTERNAL_ERROR};
+        }
+
+        ASSERT_EQ(lq_overview(&request, parallel, 6), LQ_CALL_OK);
+        for (std::size_t i{}; i < request.file_count; ++i)
+        {
+            SCOPED_TRACE(i);
+            EXPECT_EQ(parallel[i].bytes, sequential[i].bytes);
+            EXPECT_EQ(parallel[i].lines, sequential[i].lines);
+            EXPECT_EQ(parallel[i].error_lines, sequential[i].error_lines);
+            EXPECT_EQ(parallel[i].warn_lines, sequential[i].warn_lines);
+            EXPECT_EQ(parallel[i].status, sequential[i].status);
+        }
+        EXPECT_EQ(parallel[5].bytes, 11);
+        EXPECT_EQ(parallel[5].lines, 12);
+        EXPECT_EQ(parallel[5].error_lines, 13);
+        EXPECT_EQ(parallel[5].warn_lines, 14);
+        EXPECT_EQ(parallel[5].status, LQ_FILE_INTERNAL_ERROR);
+    }
 }
 
 }
