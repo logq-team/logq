@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
-
-	"logq/src/internal/engine"
 )
 
 type Command string
@@ -56,19 +53,5 @@ func ProcessArgs(args []string) (Command, error) {
 				"Type \"" + ProgramName + " --help\" for more information\n")
 		}
 
-	}
-}
-
-func Handle(commandType Command, args []string) error {
-	switch commandType {
-	case HelpCommand:
-		fmt.Println(engine.HandleHelp())
-		return nil
-	case GrepCommand:
-		return engine.HandleGrep(args[2], args[3])
-	case OverviewCommand:
-		return engine.HandleOverview(args[2])
-	default:
-		return errors.New("Unknown flag")
 	}
 }
