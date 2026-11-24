@@ -17,4 +17,10 @@ struct file_info {
 
 file_info analyze_file(std::ifstream& file);
 
+// The stream must be opened in binary mode
+// Count whole lines starting at or after begin and before end
+// Skip a partial first line only up to end and read owned lines completely
+// A single long line is still analyzed by one task
+file_info analyze_file_range(std::ifstream& file, std::streamoff begin, std::streamoff end);
+
 #endif
