@@ -5,10 +5,12 @@
 
 using std::getline;
 using std::ifstream;
+using std::invalid_argument;
 using std::runtime_error;
 using std::size_t;
 using std::string;
 using std::string_view;
+using std::streamoff;
 
 namespace {
 
@@ -78,6 +80,73 @@ file_info analyze_file(ifstream& file)
         analyze_line(line, !file.eof(), stats);
     }
     if (file.bad() || !file.eof())
+    {
+        throw runtime_error("failed to read file");
+    }
+    return stats;
+}
+
+file_info analyze_file_range(ifstream& file, streamoff begin, streamoff end)
+{
+    if (begin < 0 || end < begin)
+    {
+        throw invalid_argument("invalid file range");
+    }
+    if (!file.is_open() || file.bad())
+    {
+        throw runtime_error("failed to read file");
+    }
+
+    file_info stats = {};
+    if (begin == end)
+    {
+        return stats;
+    }
+
+    file.clear();
+    file.seekg(begin == 0 ? 0 : begin - 1);
+    if (!file)
+    {
+        throw runtime_error("failed to seek file");
+    }
+
+    // Skip the partial first line because it belongs to an earlier range
+    if (begin > 0)
+    {
+        char previous = 0;
+        if (file.get(previous) && previous != '\n')
+        {
+            // Stop at end when no new line can belong to this range
+            file.ignore(end - begin, '\n');
+        }
+    }
+    if (file.bad() || (file.fail() && !file.eof()))
+    {
+        throw runtime_error("failed to read file");
+    }
+    if (file.eof())
+    {
+        return stats;
+    }
+
+    const streamoff position = file.tellg();
+    if (position < 0)
+    {
+        throw runtime_error("failed to seek file");
+    }
+    if (position >= end)
+    {
+        return stats;
+    }
+
+    const size_t bytes_to_cover = static_cast<size_t>(end - position);
+    string line;
+    while (stats.bytes < bytes_to_cover && getline(file, line))
+    {
+        // Read the last owned line completely even if it crosses end
+        analyze_line(line, !file.eof(), stats);
+    }
+    if (file.bad() || (file.fail() && !file.eof()))
     {
         throw runtime_error("failed to read file");
     }
