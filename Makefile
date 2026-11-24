@@ -6,6 +6,8 @@ CXX ?= g++-14
 GDB ?= gdb
 PKG_CONFIG ?= pkg-config
 OVERVIEW_FILE ?= res/cpp/test.log
+OVERVIEW_BEGIN ?= 0
+OVERVIEW_END ?= 20
 BENCH_FILES ?= $(OVERVIEW_FILE)
 BENCH_WORKERS ?= 1,2,4,8
 CXX_DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer
@@ -13,6 +15,7 @@ CXX_DEBUG_FLAGS = -O0 -g3 -fno-omit-frame-pointer
 .PHONY: all build debug test hooks overview-demo cpp-test overview-api-demo
 .PHONY: debug-demo overview-demo-debug overview-api-demo-debug
 .PHONY: overview-bench overview-bench-debug
+.PHONY: overview-range-demo overview-range-demo-debug
 
 all: build
 
@@ -44,6 +47,9 @@ build/overview-test: tests/cpp/overview_test.cpp src/cppengine/overview.cpp src/
 overview-demo: build/overview-demo
 	./build/overview-demo "$(OVERVIEW_FILE)"
 
+overview-range-demo: build/overview-demo
+	./build/overview-demo "$(OVERVIEW_FILE)" "$(OVERVIEW_BEGIN)" "$(OVERVIEW_END)"
+
 build/overview-demo: examples/overview/main.cpp src/cppengine/overview.cpp src/cppengine/overview.h Makefile src/cppengine/log.h
 	mkdir -p build
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -std=c++23 -Wall -Wextra -Wpedantic -I src/cppengine \
@@ -52,6 +58,10 @@ build/overview-demo: examples/overview/main.cpp src/cppengine/overview.cpp src/c
 overview-demo-debug: build/overview-demo-debug
 	$(GDB) -q -ex 'break main' -ex 'break analyze_file' -ex run \
 		--args ./build/overview-demo-debug "$(OVERVIEW_FILE)"
+
+overview-range-demo-debug: build/overview-demo-debug
+	$(GDB) -q -ex 'break main' -ex 'break analyze_file_range' -ex run \
+		--args ./build/overview-demo-debug "$(OVERVIEW_FILE)" "$(OVERVIEW_BEGIN)" "$(OVERVIEW_END)"
 
 build/overview-demo-debug: examples/overview/main.cpp src/cppengine/overview.cpp src/cppengine/overview.h Makefile src/cppengine/log.h
 	mkdir -p build

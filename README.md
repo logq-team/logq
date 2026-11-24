@@ -46,6 +46,13 @@ make overview-demo OVERVIEW_FILE=/path/to/file.log
 make overview-demo-debug
 ```
 
+Анализ диапазона байтов и отладка
+
+```sh
+make overview-range-demo OVERVIEW_BEGIN=0 OVERVIEW_END=20
+make overview-range-demo-debug OVERVIEW_BEGIN=0 OVERVIEW_END=20
+```
+
 Тесты C++
 
 ```sh
