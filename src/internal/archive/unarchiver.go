@@ -20,10 +20,15 @@ var (
 	ErrInvalidPath = errors.New("Invalid path")
 )
 
-// first string - temp dir
-// second []string - paths to all files in archive
-// third error - error while executing unpacking
-// can throw panic if temp dir creating went wrong
+/*
+first string - temp dir
+
+second []string - paths to all files in archive
+
+third error - error while executing unpacking
+
+can throw panic if temp dir creating went wrong
+*/
 func UnpackArchive(archiveName string) (string, []string, error) {
 	filesNames := make([]string, 0, 4)
 	file, err := os.Open(archiveName)

@@ -1,4 +1,4 @@
-package engine
+package overview
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// more convenient struct than cppengine.FileStats
 type FileResult struct {
 	Path        string
 	SizeInBytes uint64
@@ -26,14 +27,18 @@ type rowData []string
 // это вывод результата в случае успешного завершения операции
 // второй - error
 // будет содержать вывод в случае ошибки
-func HandleOverview(archiveName string) (string, error) {
-	tempDir, fileNames, err := archive.UnpackArchive(archiveName)
+func HandleOverview(req *OverviewRequest) (string, error) {
+	tempDir, fileNames, err := archive.UnpackArchive(req.ArchiveName)
 	defer func() {
 		errIn := os.RemoveAll(tempDir)
 		if errIn != nil {
-			fmt.Printf("HandleOverview:\ncall os.RemoveAll: %s\n", errIn.Error())
+			fmt.Printf("Error in HandleOverview:\ncall os.RemoveAll: %s\n", errIn.Error())
 		}
 	}()
+
+	if len(fileNames) == 0 {
+		return "No log files in archive", nil
+	}
 	// используем значение от райнтама
 	workerThreadNum := runtime.GOMAXPROCS(0)
 
@@ -49,9 +54,15 @@ func HandleOverview(archiveName string) (string, error) {
 		return "", err
 	}
 
-	//TODO добавить --all
+	//default value if all option wasn't set
+	//значение по умолчанию если опция all не включена
+	maxResults := 5
+	if req.AllOption {
+		maxResults = -1
+	}
+
 	return overviewOutput(
-		tempDir, fileNames, stats, workerThreadNum, seconds, 5), nil
+		tempDir, fileNames, stats, workerThreadNum, seconds, maxResults), nil
 }
 
 func overviewOutput(rootDir string,

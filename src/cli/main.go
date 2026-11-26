@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"logq/src/internal/cmd"
 	"logq/src/internal/engine"
+	"logq/src/internal/engine/overview"
 	"os"
 )
 
@@ -24,7 +25,13 @@ func main() {
 		err := engine.HandleGrep(args[2], args[3])
 		fmt.Println(err.Error())
 	case cmd.OverviewCommand:
-		output, err := engine.HandleOverview(args[2])
+		reqPntr, err := overview.PrepareRequestForOverview(args[2:])
+		if err != nil {
+			fmt.Println(err.Error())
+			break
+		}
+
+		output, err := overview.HandleOverview(reqPntr)
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
