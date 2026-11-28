@@ -36,6 +36,10 @@ func HandleOverview(req *OverviewRequest) (string, error) {
 		}
 	}()
 
+	if err != nil {
+		return "", fmt.Errorf("Error while processing input file: %w", err)
+	}
+
 	if len(fileNames) == 0 {
 		return "No log files in archive", nil
 	}
