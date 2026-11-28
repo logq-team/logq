@@ -20,21 +20,36 @@ var (
 	ErrInvalidPath = errors.New("Invalid path")
 )
 
-func UnpackArchive(archiveName string) ([]string, error) {
+/*
+first string - temp dir
+
+second []string - paths to all files in archive
+
+third error - error while executing unpacking
+
+can throw panic if temp dir creating went wrong
+*/
+func UnpackArchive(archiveName string) (string, []string, error) {
 	filesNames := make([]string, 0, 4)
 	file, err := os.Open(archiveName)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	defer file.Close()
 
 	gzr, err := gzip.NewReader(file)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	defer gzr.Close()
 
 	tr := tar.NewReader(gzr)
+
+	//creating temp dir
+	tempDir, err := os.MkdirTemp("", DestPath)
+	if err != nil {
+		return "", nil, err
+	}
 
 	for {
 		header, err := tr.Next()
@@ -42,12 +57,12 @@ func UnpackArchive(archiveName string) ([]string, error) {
 			break
 		}
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 
-		targetPathRes, err := processTarHeader(DestPath, header, tr)
+		targetPathRes, err := processTarHeader(tempDir, header, tr)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 
 		if targetPathRes != nil {
@@ -55,7 +70,7 @@ func UnpackArchive(archiveName string) ([]string, error) {
 		}
 	}
 
-	return filesNames, nil
+	return tempDir, filesNames, nil
 }
 
 func processTarHeader(destPath string,

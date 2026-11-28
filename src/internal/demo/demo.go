@@ -1,4 +1,4 @@
-package engine
+package demo
 
 /*
 #cgo CXXFLAGS: -std=c++23 -Wall -Wextra -Wpedantic
